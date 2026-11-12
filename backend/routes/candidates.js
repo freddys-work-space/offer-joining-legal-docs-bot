@@ -94,11 +94,7 @@ router.post('/:id/send-form', requireAuthority, async (req, res, next) => {
       return res.status(404).json({ error: 'Candidate not found.' });
     }
     const candidate = candRes.rows[0];
-    const baseUrl = (
-      process.env.NEW_EMP_FRONTEND_URL ||
-      process.env.EMPLOYEE_PORTAL_URL ||
-      'http://localhost:5173'
-    ).replace(/\/+$/, '');
+    const baseUrl = (process.env.EMPLOYEE_PORTAL_URL || 'http://localhost:5173').replace(/\/+$/, '');
     const formUrl = `${baseUrl}/?uid=${candidate.id}`;
 
     const emailRes = await sendFormInviteEmail({
@@ -404,41 +400,41 @@ router.post('/:id/send-offer-bundle', requireAuthority, async (req, res, next) =
     const renderedContent = renderDocument('offer_letter', candidate, approval, refNumber);
     const { pdfPath } = await generatePdf({ refNumber, docType: 'offer_letter', renderedContent, placeholders });
 
-      const docRes = await query(
-        `INSERT INTO generated_documents (
+    const docRes = await query(
+      `INSERT INTO generated_documents (
         candidate_id, approval_id, doc_type, ref_number, rendered_content, pdf_path, sent_to_email, sent_at, status
       ) VALUES ($1, $2, 'offer_letter', $3, $4, $5, $6, NOW(), 'sent') RETURNING *`,
-        [candidate.id, approval.id, refNumber, renderedContent, pdfPath, candidate.primary_email]
-      );
+      [candidate.id, approval.id, refNumber, renderedContent, pdfPath, candidate.primary_email]
+    );
 
     const candidateName = buildCandidateFullName(candidate);
-      const emailResult = await sendOfferLetterEmail({
-        to: candidate.primary_email,
-        candidateName,
-        designation: approval.designation,
-        department: approval.department,
-        reportingManager: approval.reporting_manager,
-        acceptanceDate: offer_acceptance_date || '',
-        refNumber,
-        pdfPath,
-      });
+    const emailResult = await sendOfferLetterEmail({
+      to: candidate.primary_email,
+      candidateName,
+      designation: approval.designation,
+      department: approval.department,
+      reportingManager: approval.reporting_manager,
+      acceptanceDate: offer_acceptance_date || '',
+      refNumber,
+      pdfPath,
+    });
 
-      await query(`UPDATE candidates SET status = 'offer_sent', updated_at = NOW() WHERE id = $1`, [
-        candidate.id,
-      ]);
+    await query(`UPDATE candidates SET status = 'offer_sent', updated_at = NOW() WHERE id = $1`, [
+      candidate.id,
+    ]);
 
-      await query(
-          `INSERT INTO audit_logs (entity_type, entity_id, action, actor, metadata)
+    await query(
+      `INSERT INTO audit_logs (entity_type, entity_id, action, actor, metadata)
        VALUES ('candidate', $1, 'SENT_OFFER_LETTER', 'Inhouse Authority', $2)`,
-        [candidate.id, JSON.stringify({ refNumber, emailSent: emailResult.sent })]
-      );
+      [candidate.id, JSON.stringify({ refNumber, emailSent: emailResult.sent })]
+    );
 
-      res.status(201).json({
-        message: emailResult.sent
+    res.status(201).json({
+      message: emailResult.sent
         ? `Offer Letter emailed to ${candidate.primary_email}.`
         : `Offer Letter ${refNumber} generated! (${emailResult.message})`,
-        documents: [docRes.rows[0]],
-        ...emailResult,
+      documents: [docRes.rows[0]],
+      ...emailResult,
     });
   } catch (err) {
     next(err);
@@ -514,11 +510,11 @@ router.post('/:id/send-joining', requireAuthority, async (req, res, next) => {
     });
 
     const joiningDocRes = await query(
-        `INSERT INTO generated_documents (
+      `INSERT INTO generated_documents (
         candidate_id, approval_id, doc_type, ref_number, rendered_content, pdf_path, sent_to_email, sent_at, status
       ) VALUES ($1, $2, 'joining_letter', $3, $4, $5, $6, NOW(), 'sent') RETURNING *`,
-        [candidate.id, approval.id, joiningRefNumber, joiningRendered, joiningPdfPath, candidate.primary_email]
-      );
+      [candidate.id, approval.id, joiningRefNumber, joiningRendered, joiningPdfPath, candidate.primary_email]
+    );
 
     const legalRefNumber = generateDocRef('legal_documents');
     const legalPlaceholders = buildPlaceholders(candidate, approval, legalRefNumber);
@@ -538,34 +534,34 @@ router.post('/:id/send-joining', requireAuthority, async (req, res, next) => {
     );
 
     const candidateName = buildCandidateFullName(candidate);
-      const emailResult = await sendJoiningBundleEmail({
-        to: candidate.primary_email,
-        candidateName,
-        designation: approval.designation,
-        department: approval.department,
-        joiningDate: joining_date,
-        placeOfWork: place_of_work,
-        workAddress: work_address,
-        refNumber: joiningRefNumber,
-        pdfPaths: [joiningPdfPath, legalPdfPath],
-      });
+    const emailResult = await sendJoiningBundleEmail({
+      to: candidate.primary_email,
+      candidateName,
+      designation: approval.designation,
+      department: approval.department,
+      joiningDate: joining_date,
+      placeOfWork: place_of_work,
+      workAddress: work_address,
+      refNumber: joiningRefNumber,
+      pdfPaths: [joiningPdfPath, legalPdfPath],
+    });
 
-      await query(`UPDATE candidates SET status = 'joined', updated_at = NOW() WHERE id = $1`, [
-        candidate.id,
-      ]);
+    await query(`UPDATE candidates SET status = 'joined', updated_at = NOW() WHERE id = $1`, [
+      candidate.id,
+    ]);
 
-      await query(
-          `INSERT INTO audit_logs (entity_type, entity_id, action, actor, metadata)
+    await query(
+      `INSERT INTO audit_logs (entity_type, entity_id, action, actor, metadata)
        VALUES ('candidate', $1, 'SENT_JOINING_AND_LEGAL_DOCUMENTS', 'Inhouse Authority', $2)`,
-        [candidate.id, JSON.stringify({ joiningRefNumber, legalRefNumber, emailSent: emailResult.sent })]
-      );
+      [candidate.id, JSON.stringify({ joiningRefNumber, legalRefNumber, emailSent: emailResult.sent })]
+    );
 
-      res.status(201).json({
-        message: emailResult.sent
+    res.status(201).json({
+      message: emailResult.sent
         ? `Joining Letter & Legal Documents emailed to ${candidate.primary_email}.`
         : `Joining Letter & Legal Documents generated! (${emailResult.message})`,
-        documents: [joiningDocRes.rows[0], legalDocRes.rows[0]],
-        ...emailResult,
+      documents: [joiningDocRes.rows[0], legalDocRes.rows[0]],
+      ...emailResult,
     });
   } catch (err) {
     next(err);
