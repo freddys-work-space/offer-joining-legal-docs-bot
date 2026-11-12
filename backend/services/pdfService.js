@@ -183,6 +183,52 @@ function convertDocxToPdfWithLibreOffice(docxPath, pdfPath) {
   });
 }
 
+async function convertDocxToPdfWithConvertApi(docxPath, pdfPath) {
+  const secret = (process.env.CONVERTAPI_SECRET || '').trim();
+  if (!secret) throw new Error('CONVERTAPI_SECRET is not configured.');
+
+  const fileBuffer = fs.readFileSync(docxPath);
+  const base64Data = fileBuffer.toString('base64');
+  const fileName = path.basename(docxPath);
+
+  const payload = {
+    Parameters: [
+      {
+        Name: 'File',
+        FileValue: {
+          Name: fileName,
+          Data: base64Data,
+        },
+      },
+      {
+        Name: 'StoreFile',
+        Value: false,
+      },
+    ],
+  };
+
+  const response = await fetch(`https://v2.convertapi.com/convert/docx/to/pdf?Secret=${encodeURIComponent(secret)}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(`ConvertAPI error (${response.status}): ${data.Message || JSON.stringify(data)}`);
+  }
+
+  if (!data.Files || !data.Files[0] || !data.Files[0].FileData) {
+    throw new Error('ConvertAPI did not return file data.');
+  }
+
+  const pdfBuffer = Buffer.from(data.Files[0].FileData, 'base64');
+  fs.writeFileSync(pdfPath, pdfBuffer);
+  return pdfPath;
+}
+
 async function generateFromWordLetterhead({
   letterheadPath,
   renderedContent,
@@ -218,7 +264,17 @@ async function generateFromWordLetterhead({
       await convertDocxToPdfWithWord(tempDocx, outPdfPath);
       return { pdfPath: outPdfPath, engine: 'word-com-letterhead' };
     } catch (wordErr) {
-      console.warn('[PDF] Word COM conversion failed, trying LibreOffice:', wordErr.message);
+      console.warn('[PDF] Word COM conversion failed, trying ConvertAPI / LibreOffice:', wordErr.message);
+    }
+  }
+
+  // Cloud / Linux (Render): Convert with genuine Microsoft Word cloud engine via ConvertAPI
+  if (process.env.CONVERTAPI_SECRET) {
+    try {
+      await convertDocxToPdfWithConvertApi(tempDocx, outPdfPath);
+      return { pdfPath: outPdfPath, engine: 'convertapi-word-letterhead' };
+    } catch (apiErr) {
+      console.warn('[PDF] ConvertAPI failed, falling back to LibreOffice:', apiErr.message);
     }
   }
 
