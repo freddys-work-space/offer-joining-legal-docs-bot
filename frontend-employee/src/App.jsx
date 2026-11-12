@@ -183,13 +183,13 @@ export default function App() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`${API_BASE}/candidates/form/${encodeURIComponent(uid)}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok || !data.success) throw new Error(data.error || 'Submission failed. Please check all required fields.');
+        const res = await fetch(`${API_BASE}/candidates/form/${encodeURIComponent(uid)}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(form),
+        });
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok || !data.success) throw new Error(data.error || 'Submission failed. Please check all required fields.');
       setSubmittedOk(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
