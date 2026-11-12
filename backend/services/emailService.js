@@ -32,36 +32,40 @@ function escapeHtml(str = '') {
 }
 
 function wrapEmailHtml(company, title, bodyHtml) {
-  return `< !doctype html >
-    <html>
-      <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#1f2937;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f6f8;padding:28px 12px;">
-          <tr>
-            <td align="center">
-              <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
-                <tr>
-                  <td style="background-color:#0f172a;padding:20px 28px;border-bottom:3px solid #0b57d0;">
-                    <p style="margin:0;font-size:16px;font-weight:700;letter-spacing:0.4px;color:#ffffff;">${escapeHtml(company)}</p>
-                    <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">${escapeHtml(title)}</p>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:28px;font-size:14px;line-height:1.65;color:#1f2937;">
-                    ${bodyHtml}
-                  </td>
-                </tr>
-                <tr>
-                  <td style="background-color:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;">
-                    <p style="margin:0;">This is an official communication from Talent Acquisition &amp; HR Operations, ${escapeHtml(company)}.</p>
-                    <p style="margin:4px 0 0;">Please treat this email and its attachments as strictly confidential.</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>`;
+  return `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  </head>
+  <body style="margin:0;padding:0;background-color:#f4f6f8;font-family:'Segoe UI',Arial,Helvetica,sans-serif;color:#1f2937;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f4f6f8;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="620" cellspacing="0" cellpadding="0" style="max-width:620px;width:100%;background-color:#ffffff;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;">
+            <tr>
+              <td style="background-color:#0f172a;padding:20px 28px;border-bottom:3px solid #0b57d0;">
+                <p style="margin:0;font-size:16px;font-weight:700;letter-spacing:0.4px;color:#ffffff;">${escapeHtml(company)}</p>
+                <p style="margin:4px 0 0;font-size:12px;color:#cbd5e1;">${escapeHtml(title)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px;font-size:14px;line-height:1.65;color:#1f2937;">
+                ${bodyHtml}
+              </td>
+            </tr>
+            <tr>
+              <td style="background-color:#f8fafc;padding:16px 28px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;">
+                <p style="margin:0;">This is an official communication from Talent Acquisition &amp; HR Operations, ${escapeHtml(company)}.</p>
+                <p style="margin:4px 0 0;">Please treat this email and its attachments as strictly confidential.</p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 async function sendViaResend({ to, subject, text, html, pdfPaths = [] }) {
@@ -99,7 +103,7 @@ async function sendViaResend({ to, subject, text, html, pdfPaths = [] }) {
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: {
-      Authorization: `Bearer ${ apiKey } `,
+      Authorization: `Bearer ${apiKey.trim()}`,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(payload),
@@ -107,7 +111,7 @@ async function sendViaResend({ to, subject, text, html, pdfPaths = [] }) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(`Resend API error(${ res.status }): ${ data.message || JSON.stringify(data) } `);
+    throw new Error(`Resend API error (${res.status}): ${data.message || JSON.stringify(data)}`);
   }
 
   return {
@@ -143,7 +147,7 @@ ${company}`;
   const html = wrapEmailHtml(
     company,
     'Candidate Pre-Onboarding Verification',
-    `< p style = "margin:0 0 14px;" > Dear < strong > ${ escapeHtml(name) }</strong >,</p >
+    `<p style="margin:0 0 14px;">Dear <strong>${escapeHtml(name)}</strong>,</p>
      <p style="margin:0 0 14px;">Greetings from <strong>${escapeHtml(company)}</strong>!</p>
      <p style="margin:0 0 14px;">Thank you for participating in our selection process. Following your recent interview, we are pleased to invite you to complete your pre-onboarding personal information form so we may proceed with your formal offer documentation.</p>
      <p style="margin:20px 0;">
@@ -158,7 +162,7 @@ ${company}`;
 
   return sendViaResend({
     to,
-    subject: `Action Required: Pre - Onboarding Form – ${ company }`,
+    subject: `Action Required: Pre-Onboarding Form – ${company}`,
     text,
     html,
   });
@@ -205,7 +209,7 @@ ${company}`;
   const html = wrapEmailHtml(
     company,
     'Offer of Employment',
-    `< p style = "margin:0 0 14px;" > Dear < strong > ${ escapeHtml(name) }</strong >,</p >
+    `<p style="margin:0 0 14px;">Dear <strong>${escapeHtml(name)}</strong>,</p>
      <p style="margin:0 0 14px;">Greetings from <strong>${escapeHtml(company)}</strong>!</p>
      <p style="margin:0 0 16px;">Congratulations on your selection! Following our discussions and the review of your profile, we are delighted to extend to you an <strong>Offer of Employment</strong> for the position of <strong>${escapeHtml(designation)}</strong> in the <strong>${escapeHtml(department)}</strong> department.</p>
      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border:1px solid #e2e8f0;border-radius:6px;margin:16px 0;font-size:13px;">
