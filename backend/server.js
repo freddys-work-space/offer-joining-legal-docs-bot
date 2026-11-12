@@ -23,10 +23,21 @@ const documentsRouter = require('./routes/documents');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173,http://localhost:5174')
-  .split(',')
-  .map((s) => s.trim())
+const configuredOrigins = [
+  process.env.ADMIN_RECRUITING_URL,
+  process.env.RECRUITING_PORTAL_URL,
+  process.env.NEW_EMP_FRONTEND_URL,
+  process.env.EMPLOYEE_PORTAL_URL,
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+  'http://localhost:5174',
+]
+  .filter(Boolean)
+  .flatMap((url) => url.split(','))
+  .map((s) => s.trim().replace(/\/+$/, ''))
   .filter(Boolean);
+
+const allowedOrigins = Array.from(new Set(configuredOrigins));
 
 app.use(
   cors({

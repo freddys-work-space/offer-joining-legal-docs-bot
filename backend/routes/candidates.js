@@ -94,7 +94,11 @@ router.post('/:id/send-form', requireAuthority, async (req, res, next) => {
       return res.status(404).json({ error: 'Candidate not found.' });
     }
     const candidate = candRes.rows[0];
-    const baseUrl = (process.env.EMPLOYEE_PORTAL_URL || 'http://localhost:5173').replace(/\/+$/, '');
+    const baseUrl = (
+      process.env.NEW_EMP_FRONTEND_URL ||
+      process.env.EMPLOYEE_PORTAL_URL ||
+      'http://localhost:5173'
+    ).replace(/\/+$/, '');
     const formUrl = `${baseUrl}/?uid=${candidate.id}`;
 
     const emailRes = await sendFormInviteEmail({
