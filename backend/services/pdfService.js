@@ -347,156 +347,156 @@ async function generateFromWordLetterhead({
     }
   }
 
-  // Cloud / Linux (Render): CloudConvert engine
-  const cloudConvertToken = (
-    process.env.CLOUDCONVERT_API_KEY ||
-    (process.env.CONVERTAPI_SECRET && process.env.CONVERTAPI_SECRET.startsWith('ey') ? process.env.CONVERTAPI_SECRET : '')
-  ).trim();
+    // Cloud / Linux (Render): CloudConvert engine
+    const cloudConvertToken = (
+      process.env.CLOUDCONVERT_API_KEY ||
+      (process.env.CONVERTAPI_SECRET && process.env.CONVERTAPI_SECRET.startsWith('ey') ? process.env.CONVERTAPI_SECRET : '')
+    ).trim();
 
-  if (cloudConvertToken) {
-    try {
-      await convertDocxToPdfWithCloudConvert(tempDocx, outPdfPath);
-      return { pdfPath: outPdfPath, engine: 'cloudconvert-office-letterhead' };
-    } catch (ccErr) {
-      console.warn('[PDF] CloudConvert failed, trying next engine:', ccErr.message);
-    }
-  }
-
-  // Cloud / Linux (Render): ConvertAPI engine
-  if (process.env.CONVERTAPI_SECRET && !process.env.CONVERTAPI_SECRET.startsWith('ey')) {
-    try {
-      await convertDocxToPdfWithConvertApi(tempDocx, outPdfPath);
-      return { pdfPath: outPdfPath, engine: 'convertapi-word-letterhead' };
-    } catch (apiErr) {
-      console.warn('[PDF] ConvertAPI failed, falling back to LibreOffice:', apiErr.message);
-    }
-  }
-
-  try {
-    await convertDocxToPdfWithLibreOffice(tempDocx, outPdfPath);
-    return { pdfPath: outPdfPath, engine: 'libreoffice-letterhead' };
-  } catch (loErr) {
-    console.warn('[PDF] LibreOffice conversion failed, falling back to PDFKit:', loErr.message);
-    throw loErr;
-  }
-}
-
-function generatePdfWithPdfKit(renderedText, outPdfPath, docTitle) {
-  return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({
-      size: 'A4',
-      margins: { top: 95, bottom: 70, left: 55, right: 55 },
-      bufferPages: true,
-    });
-
-    const stream = fs.createWriteStream(outPdfPath);
-    doc.pipe(stream);
-
-    const companyName = process.env.COMPANY_NAME || 'APPLYUS PRIVATE LIMITED';
-    const companyAddress = process.env.COMPANY_ADDRESS || 'Hyderabad, Telangana, India';
-    const companyEmail = process.env.COMPANY_EMAIL || 'hr@applyus.in';
-    const companyPhone = process.env.COMPANY_PHONE || '';
-    const companyCin = process.env.COMPANY_CIN || '';
-
-    const drawHeaderFooter = () => {
-      doc.save();
-      doc.rect(0, 0, doc.page.width, 72).fill('#0f172a');
-      doc.rect(0, 72, doc.page.width, 4).fill('#2563eb');
-      doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(16).text(companyName, 55, 18);
-      doc
-        .fillColor('#cbd5e1')
-        .font('Helvetica')
-        .fontSize(8.5)
-        .text(
-          `${companyAddress}${companyEmail ? '  |  ' + companyEmail : ''}${companyPhone ? '  |  ' + companyPhone : ''} `,
-          55,
-          40
-        );
-      if (docTitle) {
-        doc.fillColor('#93c5fd').font('Helvetica-Bold').fontSize(8.5).text(docTitle.toUpperCase(), 55, 53);
+    if (cloudConvertToken) {
+      try {
+        await convertDocxToPdfWithCloudConvert(tempDocx, outPdfPath);
+        return { pdfPath: outPdfPath, engine: 'cloudconvert-office-letterhead' };
+      } catch (ccErr) {
+        console.warn('[PDF] CloudConvert failed, trying next engine:', ccErr.message);
       }
-      doc.restore();
+    }
+
+    // Cloud / Linux (Render): ConvertAPI engine
+    if (process.env.CONVERTAPI_SECRET && !process.env.CONVERTAPI_SECRET.startsWith('ey')) {
+      try {
+        await convertDocxToPdfWithConvertApi(tempDocx, outPdfPath);
+        return { pdfPath: outPdfPath, engine: 'convertapi-word-letterhead' };
+      } catch (apiErr) {
+        console.warn('[PDF] ConvertAPI failed, falling back to LibreOffice:', apiErr.message);
+      }
+    }
+
+    try {
+      await convertDocxToPdfWithLibreOffice(tempDocx, outPdfPath);
+      return { pdfPath: outPdfPath, engine: 'libreoffice-letterhead' };
+    } catch (loErr) {
+      console.warn('[PDF] LibreOffice conversion failed, falling back to PDFKit:', loErr.message);
+      throw loErr;
+    }
+  }
+
+  function generatePdfWithPdfKit(renderedText, outPdfPath, docTitle) {
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({
+        size: 'A4',
+        margins: { top: 95, bottom: 70, left: 55, right: 55 },
+        bufferPages: true,
+      });
+
+      const stream = fs.createWriteStream(outPdfPath);
+      doc.pipe(stream);
+
+      const companyName = process.env.COMPANY_NAME || 'APPLYUS PRIVATE LIMITED';
+      const companyAddress = process.env.COMPANY_ADDRESS || 'Hyderabad, Telangana, India';
+      const companyEmail = process.env.COMPANY_EMAIL || 'hr@applyus.in';
+      const companyPhone = process.env.COMPANY_PHONE || '';
+      const companyCin = process.env.COMPANY_CIN || '';
+
+      const drawHeaderFooter = () => {
+        doc.save();
+        doc.rect(0, 0, doc.page.width, 72).fill('#0f172a');
+        doc.rect(0, 72, doc.page.width, 4).fill('#2563eb');
+        doc.fillColor('#ffffff').font('Helvetica-Bold').fontSize(16).text(companyName, 55, 18);
+        doc
+          .fillColor('#cbd5e1')
+          .font('Helvetica')
+          .fontSize(8.5)
+          .text(
+            `${companyAddress}${companyEmail ? '  |  ' + companyEmail : ''}${companyPhone ? '  |  ' + companyPhone : ''} `,
+            55,
+            40
+          );
+        if (docTitle) {
+          doc.fillColor('#93c5fd').font('Helvetica-Bold').fontSize(8.5).text(docTitle.toUpperCase(), 55, 53);
+        }
+        doc.restore();
+      };
+
+      drawHeaderFooter();
+      doc.on('pageAdded', drawHeaderFooter);
+
+      const lines = (renderedText || '').split(/\r?\n/);
+      doc.fillColor('#1e293b').font('Helvetica').fontSize(10.5);
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trimEnd();
+        if (i <= 2 && (line.trim() === companyName || line.trim() === companyAddress)) continue;
+        if (!line.trim()) {
+          doc.moveDown(0.5);
+          continue;
+        }
+        const isSectionHeading =
+          /^\d+\.\s+[A-Z]/.test(line.trim()) ||
+          /^(Subject:|ACCEPTANCE|EMPLOYEE JOINING ACKNOWLEDGEMENT|STATUTORY LEGAL NOTICE)/i.test(line.trim());
+
+        if (isSectionHeading) {
+          doc.moveDown(0.25);
+          doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#0f172a').text(line, { align: 'left', lineGap: 2 });
+          doc.font('Helvetica').fontSize(10.2).fillColor('#1e293b');
+        } else {
+          doc.font('Helvetica').fontSize(10.2).fillColor('#1e293b').text(line, { align: 'justify', lineGap: 2.5 });
+        }
+      }
+
+      const range = doc.bufferedPageRange();
+      for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        doc.save();
+        doc.moveTo(55, doc.page.height - 50).lineTo(doc.page.width - 55, doc.page.height - 50).strokeColor('#cbd5e1').lineWidth(0.7).stroke();
+        doc.fillColor('#64748b').font('Helvetica').fontSize(8).text(`${companyName}${companyCin ? '  |  CIN: ' + companyCin : ''}  | Confidential`, 55, doc.page.height - 40);
+        doc.text(`Page ${i + 1} of ${range.count} `, 55, doc.page.height - 40, { align: 'right', width: doc.page.width - 110 });
+        doc.restore();
+      }
+
+      doc.end();
+      stream.on('finish', () => resolve(outPdfPath));
+      stream.on('error', reject);
+    });
+  }
+
+  async function generatePdf({ refNumber, docType, renderedContent, placeholders = null }) {
+    const safeFile = `${refNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
+    const outPdfPath = path.join(GENERATED_DIR, safeFile);
+
+    const titleMap = {
+      offer_letter: 'Offer of Employment',
+      joining_letter: 'Joining Letter',
+      legal_documents: 'Legal Agreements & Undertakings',
+      legal_notices: 'Legal Agreements & Undertakings',
+      legal_nda: 'Non-Disclosure & Data Protection Agreement',
+      legal_non_compete: 'Non-Compete & Non-Solicitation Agreement',
+      legal_ip_assignment: 'Intellectual Property Assignment Agreement',
+      legal_breach_notice: 'Statutory Legal Notice',
     };
 
-    drawHeaderFooter();
-    doc.on('pageAdded', drawHeaderFooter);
-
-    const lines = (renderedText || '').split(/\r?\n/);
-    doc.fillColor('#1e293b').font('Helvetica').fontSize(10.5);
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trimEnd();
-      if (i <= 2 && (line.trim() === companyName || line.trim() === companyAddress)) continue;
-      if (!line.trim()) {
-        doc.moveDown(0.5);
-        continue;
-      }
-      const isSectionHeading =
-        /^\d+\.\s+[A-Z]/.test(line.trim()) ||
-        /^(Subject:|ACCEPTANCE|EMPLOYEE JOINING ACKNOWLEDGEMENT|STATUTORY LEGAL NOTICE)/i.test(line.trim());
-
-      if (isSectionHeading) {
-        doc.moveDown(0.25);
-        doc.font('Helvetica-Bold').fontSize(10.5).fillColor('#0f172a').text(line, { align: 'left', lineGap: 2 });
-        doc.font('Helvetica').fontSize(10.2).fillColor('#1e293b');
-      } else {
-        doc.font('Helvetica').fontSize(10.2).fillColor('#1e293b').text(line, { align: 'justify', lineGap: 2.5 });
+    const letterheadPath = getLetterheadPath(docType);
+    if (letterheadPath) {
+      try {
+        return await generateFromWordLetterhead({
+          letterheadPath,
+          docType,
+          renderedContent,
+          placeholders,
+          outPdfPath,
+        });
+      } catch (err) {
+        console.warn(`[PDF] Word letterhead conversion for ${docType} failed, falling back to PDFKit: `, err.message);
       }
     }
 
-    const range = doc.bufferedPageRange();
-    for (let i = range.start; i < range.start + range.count; i++) {
-      doc.switchToPage(i);
-      doc.save();
-      doc.moveTo(55, doc.page.height - 50).lineTo(doc.page.width - 55, doc.page.height - 50).strokeColor('#cbd5e1').lineWidth(0.7).stroke();
-      doc.fillColor('#64748b').font('Helvetica').fontSize(8).text(`${companyName}${companyCin ? '  |  CIN: ' + companyCin : ''}  | Confidential`, 55, doc.page.height - 40);
-      doc.text(`Page ${i + 1} of ${range.count} `, 55, doc.page.height - 40, { align: 'right', width: doc.page.width - 110 });
-      doc.restore();
-    }
-
-    doc.end();
-    stream.on('finish', () => resolve(outPdfPath));
-    stream.on('error', reject);
-  });
-}
-
-async function generatePdf({ refNumber, docType, renderedContent, placeholders = null }) {
-  const safeFile = `${refNumber.replace(/[^a-zA-Z0-9_-]/g, '_')}.pdf`;
-  const outPdfPath = path.join(GENERATED_DIR, safeFile);
-
-  const titleMap = {
-    offer_letter: 'Offer of Employment',
-    joining_letter: 'Joining Letter',
-    legal_documents: 'Legal Agreements & Undertakings',
-    legal_notices: 'Legal Agreements & Undertakings',
-    legal_nda: 'Non-Disclosure & Data Protection Agreement',
-    legal_non_compete: 'Non-Compete & Non-Solicitation Agreement',
-    legal_ip_assignment: 'Intellectual Property Assignment Agreement',
-    legal_breach_notice: 'Statutory Legal Notice',
-  };
-
-  const letterheadPath = getLetterheadPath(docType);
-  if (letterheadPath) {
-    try {
-      return await generateFromWordLetterhead({
-        letterheadPath,
-        docType,
-        renderedContent,
-        placeholders,
-        outPdfPath,
-      });
-    } catch (err) {
-      console.warn(`[PDF] Word letterhead conversion for ${docType} failed, falling back to PDFKit: `, err.message);
-    }
+    await generatePdfWithPdfKit(renderedContent, outPdfPath, titleMap[docType] || 'Official Document');
+    return { pdfPath: outPdfPath, engine: 'pdfkit-letterhead' };
   }
 
-  await generatePdfWithPdfKit(renderedContent, outPdfPath, titleMap[docType] || 'Official Document');
-  return { pdfPath: outPdfPath, engine: 'pdfkit-letterhead' };
-}
-
-module.exports = {
-  generatePdf,
-  getLetterheadPath,
-  TEMPLATES_DIR,
-  GENERATED_DIR,
-};
+  module.exports = {
+    generatePdf,
+    getLetterheadPath,
+    TEMPLATES_DIR,
+    GENERATED_DIR,
+  };
