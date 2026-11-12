@@ -213,13 +213,21 @@ async function generateFromWordLetterhead({
   const tempDocx = outPdfPath.replace(/\.pdf$/i, '.docx');
   fs.writeFileSync(tempDocx, zip.generate({ type: 'nodebuffer', compression: 'DEFLATE' }));
 
+  if (process.platform === 'win32') {
+    try {
+      await convertDocxToPdfWithWord(tempDocx, outPdfPath);
+      return { pdfPath: outPdfPath, engine: 'word-com-letterhead' };
+    } catch (wordErr) {
+      console.warn('[PDF] Word COM conversion failed, trying LibreOffice:', wordErr.message);
+    }
+  }
+
   try {
-    await convertDocxToPdfWithWord(tempDocx, outPdfPath);
-    return { pdfPath: outPdfPath, engine: 'word-com-letterhead' };
-  } catch (wordErr) {
-    console.warn('[PDF] Word COM conversion failed, trying LibreOffice:', wordErr.message);
     await convertDocxToPdfWithLibreOffice(tempDocx, outPdfPath);
     return { pdfPath: outPdfPath, engine: 'libreoffice-letterhead' };
+  } catch (loErr) {
+    console.warn('[PDF] LibreOffice conversion failed, falling back to PDFKit:', loErr.message);
+    throw loErr;
   }
 }
 
