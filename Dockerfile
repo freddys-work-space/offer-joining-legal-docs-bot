@@ -1,12 +1,11 @@
-# Production Dockerfile for Render Deployment
-FROM node:20-bullseye-slim
+# Production Dockerfile for Render Deployment using Debian Bookworm (active stable release)
+FROM node:20-bookworm-slim
 
 # Install LibreOffice Writer and essential fonts for DOCX to PDF conversion
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libreoffice-writer \
     fonts-liberation \
     fonts-dejavu-core \
-    default-jre-headless \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
