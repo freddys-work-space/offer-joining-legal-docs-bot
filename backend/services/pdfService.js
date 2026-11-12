@@ -229,6 +229,85 @@ async function convertDocxToPdfWithConvertApi(docxPath, pdfPath) {
   return pdfPath;
 }
 
+async function convertDocxToPdfWithCloudConvert(docxPath, pdfPath) {
+  const token = (
+    process.env.CLOUDCONVERT_API_KEY ||
+    (process.env.CONVERTAPI_SECRET && process.env.CONVERTAPI_SECRET.startsWith('ey') ? process.env.CONVERTAPI_SECRET : '')
+  ).trim();
+
+  if (!token) throw new Error('CloudConvert API token is not configured.');
+
+  const fileData = fs.readFileSync(docxPath).toString('base64');
+  const fileName = path.basename(docxPath);
+
+  const jobPayload = {
+    tasks: {
+      'import-file': {
+        operation: 'import/base64',
+        file: fileData,
+        filename: fileName,
+      },
+      'convert-file': {
+        operation: 'convert',
+        input: 'import-file',
+        output_format: 'pdf',
+        engine: 'office',
+      },
+      'export-file': {
+        operation: 'export/url',
+        input: 'convert-file',
+      },
+    },
+  };
+
+  const createRes = await fetch('https://api.cloudconvert.com/v2/jobs', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(jobPayload),
+  });
+
+  const job = await createRes.json().catch(() => ({}));
+  if (!createRes.ok || !job.data || !job.data.id) {
+    throw new Error(`CloudConvert error (${createRes.status}): ${job.message || JSON.stringify(job)}`);
+  }
+
+  const jobId = job.data.id;
+  let exportUrl = null;
+
+  for (let i = 0; i < 20; i++) {
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+    const statusRes = await fetch(`https://api.cloudconvert.com/v2/jobs/${jobId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const statusData = await statusRes.json().catch(() => ({}));
+    const status = statusData.data ? statusData.data.status : '';
+
+    if (status === 'finished') {
+      const exportTask = statusData.data.tasks.find((t) => t.operation === 'export/url');
+      if (exportTask && exportTask.result && exportTask.result.files && exportTask.result.files[0]) {
+        exportUrl = exportTask.result.files[0].url;
+      }
+      break;
+    }
+    if (status === 'error') {
+      throw new Error(`CloudConvert job failed: ${JSON.stringify(statusData)}`);
+    }
+  }
+
+  if (!exportUrl) {
+    throw new Error('CloudConvert timed out or failed to export PDF.');
+  }
+
+  const pdfRes = await fetch(exportUrl);
+  if (!pdfRes.ok) throw new Error(`Failed to download PDF from CloudConvert (${pdfRes.status})`);
+  const arrayBuf = await pdfRes.arrayBuffer();
+  fs.writeFileSync(pdfPath, Buffer.from(arrayBuf));
+  return pdfPath;
+}
+
 async function generateFromWordLetterhead({
   letterheadPath,
   renderedContent,
@@ -264,12 +343,27 @@ async function generateFromWordLetterhead({
       await convertDocxToPdfWithWord(tempDocx, outPdfPath);
       return { pdfPath: outPdfPath, engine: 'word-com-letterhead' };
     } catch (wordErr) {
-      console.warn('[PDF] Word COM conversion failed, trying ConvertAPI / LibreOffice:', wordErr.message);
+      console.warn('[PDF] Word COM conversion failed, trying Cloud engines / LibreOffice:', wordErr.message);
     }
   }
 
-  // Cloud / Linux (Render): Convert with genuine Microsoft Word cloud engine via ConvertAPI
-  if (process.env.CONVERTAPI_SECRET) {
+  // Cloud / Linux (Render): CloudConvert engine
+  const cloudConvertToken = (
+    process.env.CLOUDCONVERT_API_KEY ||
+    (process.env.CONVERTAPI_SECRET && process.env.CONVERTAPI_SECRET.startsWith('ey') ? process.env.CONVERTAPI_SECRET : '')
+  ).trim();
+
+  if (cloudConvertToken) {
+    try {
+      await convertDocxToPdfWithCloudConvert(tempDocx, outPdfPath);
+      return { pdfPath: outPdfPath, engine: 'cloudconvert-office-letterhead' };
+    } catch (ccErr) {
+      console.warn('[PDF] CloudConvert failed, trying next engine:', ccErr.message);
+    }
+  }
+
+  // Cloud / Linux (Render): ConvertAPI engine
+  if (process.env.CONVERTAPI_SECRET && !process.env.CONVERTAPI_SECRET.startsWith('ey')) {
     try {
       await convertDocxToPdfWithConvertApi(tempDocx, outPdfPath);
       return { pdfPath: outPdfPath, engine: 'convertapi-word-letterhead' };
