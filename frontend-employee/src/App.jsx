@@ -9,6 +9,11 @@ import {
   Loader2,
 } from 'lucide-react';
 
+const rawApiUrl = (import.meta.env.VITE_API_URL || '').trim().replace(/\/+$/, '');
+const API_BASE = rawApiUrl
+  ? (rawApiUrl.endsWith('/api') ? rawApiUrl : `${rawApiUrl}/api`)
+  : '/api';
+
 const INITIAL_STATE = {
   first_name: '',
   middle_name: '',
@@ -56,7 +61,7 @@ export default function App() {
       return;
     }
 
-    fetch(`/api/candidates/form/${encodeURIComponent(uid)}`)
+    fetch(`${API_BASE}/candidates/form/${encodeURIComponent(uid)}`)
       .then(async (res) => {
         const data = await res.json().catch(() => ({}));
         if (!res.ok || !data.valid) throw new Error(data.error || 'Unable to verify onboarding link.');
@@ -178,7 +183,7 @@ export default function App() {
 
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/candidates/form/${encodeURIComponent(uid)}`, {
+      const res = await fetch(`${API_BASE}/candidates/form/${encodeURIComponent(uid)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
