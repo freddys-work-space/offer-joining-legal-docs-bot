@@ -1,0 +1,23 @@
+{
+  "name": "applyus-offer-bot-backend",
+  "version": "1.0.0",
+  "description": "Backend API for APPLYUS PRIVATE LIMITED Offer Letter, Joining Letter & Legal Forms Bot",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "db:init": "node db/init.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "docxtemplater": "^3.50.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.16",
+    "pdfkit": "^0.15.2",
+    "pg": "^8.13.1",
+    "pizzip": "^3.1.7"
+  }
+}
+
