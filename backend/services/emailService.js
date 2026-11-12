@@ -125,7 +125,7 @@ async function sendFormInviteEmail({ to, candidateName, formUrl }) {
   const company = process.env.COMPANY_NAME || 'APPLYUS PRIVATE LIMITED';
   const name = toTitleCase(candidateName);
 
-  const text = `Dear ${ name },
+  const text = `Dear ${name},
 
 Greetings from ${company}!
 
@@ -181,30 +181,30 @@ ${company}`;
       const company = process.env.COMPANY_NAME || 'APPLYUS PRIVATE LIMITED';
       const name = toTitleCase(candidateName);
 
-      const text = `Dear ${name},
+      const text = `Dear ${ name },
 
-Greetings from ${company}!
+    Greetings from ${ company }!
 
-Congratulations on your selection! Following our discussions and the review of your profile, we are delighted to extend to you an Offer of Employment with ${company} for the position of ${designation} in the ${department} department.
+Congratulations on your selection! Following our discussions and the review of your profile, we are delighted to extend to you an Offer of Employment with ${ company } for the position of ${ designation } in the ${ department } department.
 
 Offer Summary:
-- Reference Number : ${refNumber}
-- Position         : ${designation}
-- Department       : ${department}
-- Reporting Manager: ${reportingManager}${acceptanceDate ? `\n- Acceptance Due By: ${acceptanceDate}` : ''}
+  - Reference Number: ${ refNumber }
+  - Position         : ${ designation }
+  - Department       : ${ department }
+  - Reporting Manager: ${ reportingManager }${ acceptanceDate ? `\n- Acceptance Due By: ${acceptanceDate}` : '' }
 
 Attached Document:
-- Official Offer of Employment Letter (PDF)
+  - Official Offer of Employment Letter(PDF)
 
 Next Steps:
-- Please review all terms, compensation details, and policies mentioned in the letter carefully.
-- Sign the Offer Acceptance section, and reply to this email confirming your acceptance${acceptanceDate ? ` on or before ${acceptanceDate}` : ' at your earliest convenience'}.
+  - Please review all terms, compensation details, and policies mentioned in the letter carefully.
+- Sign the Offer Acceptance section, and reply to this email confirming your acceptance${ acceptanceDate ? ` on or before ${acceptanceDate}` : ' at your earliest convenience' }.
 
-We are excited about the prospect of welcoming you to ${company} and look forward to a mutually rewarding association.
+We are excited about the prospect of welcoming you to ${ company } and look forward to a mutually rewarding association.
 
 Warm regards,
-Human Resources Team
-${company}`;
+    Human Resources Team
+${ company } `;
 
   const html = wrapEmailHtml(
     company,
@@ -229,14 +229,13 @@ ${company}`;
          <td style="padding:9px 14px;${acceptanceDate ? 'border-bottom:1px solid #e2e8f0;' : ''}color:#475569;">Reporting Manager</td>
          <td style="padding:9px 14px;${acceptanceDate ? 'border-bottom:1px solid #e2e8f0;' : ''}font-weight:600;color:#0f172a;">${escapeHtml(reportingManager)}</td>
        </tr>
-       ${
-         acceptanceDate
-           ? `<tr style="background-color:#f8fafc;">
+       ${acceptanceDate
+      ? `<tr style="background-color:#f8fafc;">
                 <td style="padding:9px 14px;color:#475569;">Acceptance Deadline</td>
                 <td style="padding:9px 14px;font-weight:600;color:#0b57d0;">${escapeHtml(acceptanceDate)}</td>
               </tr>`
-           : ''
-       }
+      : ''
+    }
      </table>
      <p style="margin:16px 0 8px;"><strong>Attached Document:</strong></p>
      <ul style="margin:0 0 16px;padding-left:20px;color:#334155;">
